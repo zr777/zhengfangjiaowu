@@ -1,6 +1,9 @@
 from keras.models import load_model
 from keras.backend import image_data_format
 import numpy as np
+import tensorflow as tf
+
+# https://github.com/fchollet/keras/issues/2397
 
 # vars for predict_image(
 img_rows, img_cols = 12, 22
@@ -14,6 +17,13 @@ import string
 CHRS = string.ascii_lowercase + string.digits
 
 model = load_model(r'./cnn_dama_final.h5')
+graph = tf.get_default_graph()
+# keras模型应用于flask app时会报bug !!
+# model._make_predict_function() # 不能解决问题
+# https://github.com/fchollet/keras/issues/6124
+# 以下链接可以解决问题
+# https://github.com/fchollet/keras/issues/2397
+
 # vars for predict_image)
 
 def handle_split_image(image):
@@ -31,12 +41,15 @@ def handle_split_image(image):
     return ims
    
 def _predict_image(images): 
+    global graph
     Y = []
     for i in range(4):
         im = images[i]
         test_input = np.concatenate(np.array(im))
         test_input = test_input.reshape(1, *input_shape)
-        y_probs = model.predict(test_input)
+        y_probs = None
+        with graph.as_default():
+            y_probs = model.predict(test_input)
         y = CHRS[y_probs[0].argmax(-1)]
         Y.append(y)
         # plt.subplot(1,4,i+1)

@@ -36,6 +36,7 @@ class score_crawler():
         '''
         url_veri_img = self.url_base + 'CheckCode.aspx'
         res = self.session.get(url_veri_img)
+        # print(res.status_code) # 200
         image_file = io.BytesIO(res.content)
         image = Image.open(image_file)
         return image
@@ -51,7 +52,11 @@ class score_crawler():
         soup = BeautifulSoup(res.text, "lxml")
         csrf_token = soup.find('input', attrs={'name': '__VIEWSTATE'})['value']
         ## 先获取csrf_token
-        veri_code = predict_image(self._get_image())
+        im = self._get_image()
+        print('验证码获取完成, 开始预测')
+        veri_code = predict_image(im)
+        print('预测结果为:', veri_code)
+        
         login_data = {
             '__VIEWSTATE': csrf_token,
             'txtUserName': self.student_id,
@@ -64,7 +69,6 @@ class score_crawler():
             'hidsc':  '',
         }
         res = self.session.post(url_login, data=login_data)
-        prinr(res.content)
         return res
 
     def _retry_login(self, limit_times=2):
@@ -81,7 +85,7 @@ class score_crawler():
                 print('成功登录')
                 return student_name
             except Exception as e:
-                # print(e)
+                print(e)
                 try_times += 1
                 print('第', try_times, '次尝试失败')
                 if try_times >= limit_times:
